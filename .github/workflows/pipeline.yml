@@ -1,0 +1,49 @@
+name: CI-CD to OpenShift
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Setup Java
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # 3. Build + test
+      - name: Build with Maven
+        run: mvn clean package -DskipTests=false
+
+      # 4. Login to OpenShift
+      - name: Login to OpenShift
+        run: |
+          oc login ${{ secrets.OPENSHIFT_SERVER }} \
+            --token=${{ secrets.OPENSHIFT_TOKEN }} \
+            --insecure-skip-tls-verify=true
+
+      # 5. Build image inside OpenShift (простая схема)
+      - name: Build Image in OpenShift
+        run: |
+          oc new-build --name=java-cicd-demo --binary --strategy=docker || true
+          oc start-build java-cicd-demo --from-dir=. --follow
+
+      # 6. Deploy / update
+      - name: Deploy app
+        run: |
+          oc apply -f k8s/deployment.yaml
+          oc apply -f k8s/service.yaml
+          oc apply -f k8s/route.yaml
+
+      # 7. Rollout restart
+      - name: Restart deployment
+        run: oc rollout restart deployment/java-cicd-demo
