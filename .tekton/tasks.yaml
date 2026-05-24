@@ -1,0 +1,36 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: spring-build
+spec:
+  workspaces:
+    - name: source
+  steps:
+    - name: maven-package
+      image: maven:3.9-eclipse-temurin-21
+      workingDir: $(workspaces.source.path)
+      script: |
+        mvn clean package -DskipTests -Dmaven.test.failure.ignore=true
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: buildah-push
+spec:
+  workspaces:
+    - name: source
+  results:
+    - name: IMAGE_REF
+      description: Ссылка на собранный образ
+  steps:
+    - name: build-and-push
+      image: registry.access.redhat.com/ubi9/buildah
+      workingDir: $(workspaces.source.path)
+      script: |
+        BUILD_TAG="$(tasks.clone-repo.results.commit)"
+        IMAGE="image-registry.openshift-image-registry.svc:5000/$(context.pipelineRun.namespace)/spring-app:${BUILD_TAG}"
+        
+        buildah --storage-driver=vfs bud -f Dockerfile -t "${IMAGE}" .
+        buildah --storage-driver=vfs push --tls-verify=false "${IMAGE}" docker://${IMAGE}
+        
+        echo "${IMAGE}" > $(results.IMAGE_REF.path)

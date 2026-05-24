@@ -1,8 +1,0 @@
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: java-cicd-demo
-spec:
-  to:
-    kind: Service
-    name: java-cicd-demo

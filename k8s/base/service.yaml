@@ -1,10 +1,11 @@
+
 apiVersion: v1
 kind: Service
 metadata:
-  name: java-cicd-demo
+  name: spring-app
 spec:
   selector:
-    app: java-cicd-demo
+    app: spring-app
   ports:
-    - port: 80
+    - port: 8080
       targetPort: 8080
