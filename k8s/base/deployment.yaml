@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: spring-app
+  labels:
+    app: spring-app
 spec:
   replicas: 1
   selector:
@@ -14,7 +16,8 @@ spec:
     spec:
       containers:
         - name: spring-app
-          image: placeholder
+          # Пайплайн сам подставит правильный образ
+          image: spring-app:placeholder
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -28,3 +31,10 @@ spec:
               path: /actuator/health/liveness
               port: 8080
             initialDelaySeconds: 30
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
